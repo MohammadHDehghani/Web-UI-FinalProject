@@ -127,3 +127,12 @@ EMAIL_HOST_USER = 'uiwebfinalproject@gmail.com'
 EMAIL_HOST_PASSWORD = 'opsl pfzy patw sxls'
 
 SITE_ID = 1
+
+LOGIN_REDIRECT_URL = '/dashboard/'
+
+LOGOUT_REDIRECT_URL = 'users/login/'
+
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+    'users.authentication_backends.EmailAuthBackend',
+]

@@ -3,14 +3,18 @@ from django.contrib.sites.shortcuts import get_current_site
 from django.core.mail import EmailMessage
 from django.shortcuts import render, redirect
 from django.http import HttpResponse
-from django.contrib.auth import login, get_user_model
+from django.contrib.auth import login, get_user_model, authenticate, logout
 from django.template.loader import render_to_string
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.views.decorators.csrf import csrf_protect
+from django.contrib import messages
 
-from .forms import SignUpForm
+from .forms import SignUpForm, LoginForm
 from .models import CustomUser
+
+import re
+
 
 User = get_user_model()
 
@@ -35,7 +39,6 @@ def signup(request):
     return render(request, 'signup.html', {'form': form})
 
 
-@csrf_protect
 def send_email(request, user, form):
     current_site = get_current_site(request)
     mail_subject = 'Activate your account.'
@@ -51,7 +54,6 @@ def send_email(request, user, form):
     return render(request, 'email_verification_sent.html')
 
 
-@csrf_protect
 def activate(request, uidb64, token):
     try:
         uid = force_str(urlsafe_base64_decode(uidb64))
@@ -66,3 +68,39 @@ def activate(request, uidb64, token):
         return redirect('home')
     else:
         return render(request, 'activation_invalid.html')
+
+
+@csrf_protect
+def user_login(request):
+    if request.method == 'POST':
+        form = LoginForm(request.POST)
+        if form.is_valid():
+            username_or_email = form.cleaned_data['username_email']
+            password = form.cleaned_data['password']
+
+            if is_valid_email(username_or_email):
+                user = authenticate(request, email=username_or_email, password=password)
+            else:
+                user = authenticate(request, username=username_or_email, password=password)
+
+            if user is not None:
+                login(request, user)
+                messages.success(request, 'You have been logged in.')
+                return redirect('home')
+            else:
+                messages.error(request, 'Invalid username or password.')
+    else:
+        form = LoginForm()
+
+    return render(request, 'login.html', {'form': form})
+
+
+def is_valid_email(email):
+    pattern = r'^[\w\.-]+@[a-zA-Z\d\.-]+\.[a-zA-Z]{2,}$'
+    return re.match(pattern, email) is not None
+
+
+def user_logout(request):
+    logout(request)
+    messages.info(request, 'You have been logged out.')
+    return redirect('login')
