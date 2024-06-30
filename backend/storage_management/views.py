@@ -45,9 +45,9 @@ def user_objects(request):
     user = request.user
     pagination = request.data['pagination']
 
-    objects_owned_or_accessible = Object.objects.filter(Q(owner=user) | Q(users_with_access=user)).distinct()
+    objects_owned_or_accessible = Object.objects.filter(Q(owner=user) | Q(users_with_access__in=[user])).distinct()
 
-    serialized_data = [{'name': obj.name, 'size': obj.size, 'date': obj.date, 'extension': obj.extension} for obj in objects_owned_or_accessible]
+    serialized_data = [{'name': obj.name, 'size': obj.size, 'date': obj.date, 'owner': obj.owner.username, 'extension': obj.extension} for obj in objects_owned_or_accessible]
 
     start_element = 12*(int(pagination)-1)
     end_element = 12*(int(pagination)-1) + 12

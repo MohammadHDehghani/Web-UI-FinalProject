@@ -86,7 +86,7 @@ CORS_ALLOWED_ORIGINS = [
 # Optional CORS settings
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']
-CORS_ALLOWED_HEADERS = ['Content-Type', 'Authorization', 'Auth']
+CORS_ALLOWED_HEADERS = ['Content-Type', 'Authorization']
 CORS_EXPOSE_HEADERS = []
 CORS_PREFLIGHT_MAX_AGE = 86400
 
