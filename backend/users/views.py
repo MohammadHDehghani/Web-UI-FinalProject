@@ -88,13 +88,19 @@ def user_login(request):
         if is_valid_email(username_or_email):
             user = authenticate(request, email=username_or_email, password=password)
         else:
+<<<<<<< HEAD
             user = authenticate(request, username=username_or_email, password=password)
+=======
+            user = authenticate(request, username= username_or_email, password=password)
+>>>>>>> main
 
         if user is not None:
             refresh = RefreshToken.for_user(user)
             return Response({
                 'refresh': str(refresh),
                 'access': str(refresh.access_token),
+                'username': user.username,
+                'avatar': 'https://www.svgrepo.com/download/146916/avatar.svg'
             })
         else:
             return Response({'detail': 'Invalid username or password.Or user\' email is not activated.'}, status=status.HTTP_401_UNAUTHORIZED)
@@ -106,7 +112,10 @@ def is_valid_email(email):
     return re.match(pattern, email) is not None
 
 
+<<<<<<< HEAD
 @csrf_protect
+=======
+>>>>>>> main
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def user_logout(request):
