@@ -1,14 +1,13 @@
 from django.contrib.sites.shortcuts import get_current_site
 from django.core.mail import send_mail
-from django.shortcuts import redirect
-from django.contrib.auth import get_user_model, authenticate, logout
+from django.contrib.auth import get_user_model, authenticate
 from django.template.loader import render_to_string
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
-from django.contrib import messages
+from django.views.decorators.csrf import csrf_protect
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 
@@ -24,6 +23,7 @@ logger = logging.getLogger(__name__)
 User = get_user_model()
 
 
+@csrf_protect
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def signup(request):
@@ -58,6 +58,7 @@ def send_verification_email(request, user):
         raise e
 
 
+@csrf_protect
 @api_view(['POST', 'GET'])
 @permission_classes([AllowAny])
 def activate(request, uidb64, token):
@@ -75,6 +76,7 @@ def activate(request, uidb64, token):
         return Response({'detail': 'Activation link is invalid!'}, status=status.HTTP_400_BAD_REQUEST)
 
 
+@csrf_protect
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def user_login(request):
@@ -83,7 +85,10 @@ def user_login(request):
         username_or_email = form.cleaned_data['username_email']
         password = form.cleaned_data['password']
 
-        user = authenticate(request, username=username_or_email, password=password)
+        if is_valid_email(username_or_email):
+            user = authenticate(request, email=username_or_email, password=password)
+        else:
+            user = authenticate(request, username=username_or_email, password=password)
 
         if user is not None:
             refresh = RefreshToken.for_user(user)
@@ -92,7 +97,7 @@ def user_login(request):
                 'access': str(refresh.access_token),
             })
         else:
-            return Response({'detail': 'Invalid username or password.'}, status=status.HTTP_401_UNAUTHORIZED)
+            return Response({'detail': 'Invalid username or password.Or user\' email is not activated.'}, status=status.HTTP_401_UNAUTHORIZED)
     return Response(form.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -101,7 +106,15 @@ def is_valid_email(email):
     return re.match(pattern, email) is not None
 
 
+@csrf_protect
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def user_logout(request):
-    logout(request)
-    messages.info(request, 'You have been logged out.')
-    return redirect('login')
+    try:
+        refresh_token = request.data["refresh"]
+        token = RefreshToken(refresh_token)
+        token.blacklist()
+
+        return Response(status=status.HTTP_205_RESET_CONTENT)
+    except Exception as e:
+        return Response(status=status.HTTP_400_BAD_REQUEST)
