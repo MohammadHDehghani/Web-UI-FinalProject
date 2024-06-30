@@ -93,6 +93,8 @@ def user_login(request):
             return Response({
                 'refresh': str(refresh),
                 'access': str(refresh.access_token),
+                'username': user.username,
+                'avatar': 'https://www.svgrepo.com/download/146916/avatar.svg'
             })
         else:
             return Response({'detail': 'Invalid username or password.'}, status=status.HTTP_401_UNAUTHORIZED)
