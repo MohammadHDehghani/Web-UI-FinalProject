@@ -55,7 +55,9 @@ def user_objects(request):
     if end_element > len(serialized_data):
         end_element = len(serialized_data) - 1
 
-    return Response(serialized_data[start_element:end_element])
+    total_objects = len(serialized_data)
+    return Response({'serialized_data': serialized_data[start_element:end_element],
+                     'total_objects_number': total_objects})
 
 
 @csrf_protect
