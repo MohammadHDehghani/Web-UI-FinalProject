@@ -96,7 +96,7 @@ def user_login(request):
                 'refresh': str(refresh),
                 'access': str(refresh.access_token),
                 'username': user.username,
-                'avatar': 'https://www.svgrepo.com/download/146916/avatar.svg'
+                'avatar': 'https://saatsheni.com/storage/4a4da2041c057327aa7287ae5e78c2b6/Card-thumbanil-copy.webp'
             })
         else:
             return Response({'detail': 'Invalid username or password.Or user\' email is not activated.'}, status=status.HTTP_401_UNAUTHORIZED)
