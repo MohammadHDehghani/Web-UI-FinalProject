@@ -102,16 +102,19 @@ def create_presigned_post(s3_client, bucket_name, object_name, fields=None, cond
 def download(request):
     data = request.data
     try:
-        s3_resource = arvan_authenticator()
-        if s3_resource is None:
+        s3_client = boto3.client(
+            's3',
+            endpoint_url=endpoint_url,
+            aws_access_key_id=access_key,
+            aws_secret_access_key=secret_key
+        )
+        if s3_client is None:
             raise Exception()
     except Exception as exc:
         logging.error(exc)
         return Response({"error": "Authentication to S3 failed."}, status=500)
     else:
         try:
-            bucket = s3_resource.Bucket(bucket_name)
-            download_path = data['download_path']
             object_name = data['object_name']
 
             obj = Object.objects.filter(name=object_name).first()
@@ -122,8 +125,16 @@ def download(request):
             if request.user != obj.owner and not obj.users_with_access.filter(id=request.user.id).exists():
                 return Response({"error": "You do not have permission to access this object."}, status=403)
 
-            bucket.download_file(object_name, download_path)
-            return Response({'detail': 'File downloaded successfully.'}, status=200)
+            response = s3_client.generate_presigned_url(
+                'get_object',
+                Params={
+                    'Bucket': bucket_name,
+                    'Key': object_name
+                },
+                ExpiresIn=3600
+            )
+
+            return Response(response, status=200)
 
         except Exception as exc:
             logging.error(exc)
