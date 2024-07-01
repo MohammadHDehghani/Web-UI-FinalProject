@@ -13,6 +13,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 from .forms import LoginForm
 from .models import CustomUser
+from storage_management.models import Object
 from .serializers import SignUpSerializer
 from .tokens import account_activation_token
 
@@ -96,11 +97,23 @@ def user_login(request):
                 'refresh': str(refresh),
                 'access': str(refresh.access_token),
                 'username': user.username,
-                'avatar': 'https://saatsheni.com/storage/4a4da2041c057327aa7287ae5e78c2b6/Card-thumbanil-copy.webp'
+                'avatar': 'https://saatsheni.com/storage/4a4da2041c057327aa7287ae5e78c2b6/Card-thumbanil-copy.webp',
+                'total_volume': calculate_total_volume(user.username),
             })
         else:
             return Response({'detail': 'Invalid username or password.Or user\' email is not activated.'}, status=status.HTTP_401_UNAUTHORIZED)
     return Response(form.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+def calculate_total_volume(username):
+    objects = Object.objects.all()
+    total_volume = 0
+
+    for object in objects:
+        if object.owner.username == username:
+            total_volume = total_volume + int(object.size)
+
+    return total_volume
 
 
 def is_valid_email(email):

@@ -71,6 +71,19 @@ def upload(request):
             aws_secret_access_key=secret_key
         )
 
+        cors_configuration = {
+            'CORSRules': [{
+                'AllowedHeaders': ['*'],
+                'AllowedMethods': ['POST'],
+                'AllowedOrigins': ['*']
+            }]
+        }
+
+        s3_client.put_bucket_cors(
+            Bucket=bucket_name,
+            CORSConfiguration=cors_configuration
+        )
+
         object_name = request.data['object_name']
         response = create_presigned_post(s3_client, bucket_name, object_name)
         if response:
@@ -102,32 +115,29 @@ def create_presigned_post(s3_client, bucket_name, object_name, fields=None, cond
 def post_upload(request):
     data = request.data
     try:
-        file_path = data['file_path']
         object_name = data['object_name']
 
-        if not file_path or not object_name:
-            return Response({"error": "file_path and object_name are required."}, status=400)
+        if not object_name:
+            return Response({"error": "object_name is required."}, status=400)
 
-        extension = os.path.splitext(file_path)[1].lower().strip(".")
+        extension = object_name.split('.')[-1]
 
         existing_object = Object.objects.filter(name=object_name, owner=request.user).first()
         if existing_object:
             existing_object.delete()
 
-        with open(file_path, "rb") as file:
-            owner = request.user
-            size = file.tell()
-            new_object = Object(
-                name=object_name,
-                size=size,
-                owner=owner,
-                extension=extension
-            )
-            new_object.save()
-            new_object.users_with_access.add(owner)
-            new_object.save()
+        new_object = Object(
+            name=object_name,
+            size=data['size'],
+            owner=request.user,
+            extension=extension
+        )
 
-            return Response({'detail': 'Changes submitted to database.'}, status=200)
+        new_object.save()
+        new_object.users_with_access.add(request.user)
+        new_object.save()
+
+        return Response({'detail': 'Changes submitted to database.'}, status=200)
 
     except Exception as exc:
         logging.error(exc)
@@ -243,6 +253,8 @@ def get_users_access(request):
         if user.username != request.user.username:
             response.append({
                 'user': user.username,
+                'email': user.email,
+                'avatar': 'https://saatsheni.com/storage/4a4da2041c057327aa7287ae5e78c2b6/Card-thumbanil-copy.webp',
                 'has_access': 'true' if user in users_with_access else 'false'
             })
 
