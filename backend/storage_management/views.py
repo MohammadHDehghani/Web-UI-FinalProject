@@ -243,6 +243,8 @@ def get_users_access(request):
         if user.username != request.user.username:
             response.append({
                 'user': user.username,
+                'email': user.email,
+                'avatar': 'https://saatsheni.com/storage/4a4da2041c057327aa7287ae5e78c2b6/Card-thumbanil-copy.webp',
                 'has_access': 'true' if user in users_with_access else 'false'
             })
 
