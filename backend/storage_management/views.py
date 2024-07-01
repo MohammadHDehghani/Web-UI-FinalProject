@@ -51,7 +51,7 @@ def user_objects(request):
     end_element = 12 * (int(pagination) - 1) + 12
 
     if end_element > len(serialized_data):
-        end_element = len(serialized_data) - 1
+        end_element = len(serialized_data)
 
     total_objects = len(serialized_data)
     return Response({'serialized_data': serialized_data[start_element:end_element],
