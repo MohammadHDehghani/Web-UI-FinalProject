@@ -4,20 +4,16 @@ from django.views.decorators.csrf import csrf_protect
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 
-
 from .models import Object
-
+from users.models import CustomUser
 
 import boto3
 import logging
 import os
 
-
 from rest_framework.response import Response
 
-
 User = get_user_model()
-
 
 endpoint_url = "https://s3.ir-tbz-sh1.arvanstorage.ir"
 access_key = "860ab792-ba78-433f-a7d5-831a0da59834"
@@ -31,9 +27,9 @@ def arvan_authenticator():
     try:
         return boto3.resource(
             's3',
-            endpoint_url= endpoint_url,
-            aws_access_key_id= access_key,
-            aws_secret_access_key= secret_key
+            endpoint_url=endpoint_url,
+            aws_access_key_id=access_key,
+            aws_secret_access_key=secret_key
         )
     except Exception as exc:
         logging.info(exc)
@@ -47,10 +43,12 @@ def user_objects(request):
 
     objects_owned_or_accessible = Object.objects.filter(Q(owner=user) | Q(users_with_access__in=[user])).distinct()
 
-    serialized_data = [{'name': obj.name, 'size': obj.size, 'date': obj.date, 'owner': obj.owner.username, 'extension': obj.extension} for obj in objects_owned_or_accessible]
+    serialized_data = [
+        {'name': obj.name, 'size': obj.size, 'date': obj.date, 'owner': obj.owner.username, 'extension': obj.extension}
+        for obj in objects_owned_or_accessible]
 
-    start_element = 12*(int(pagination)-1)
-    end_element = 12*(int(pagination)-1) + 12
+    start_element = 12 * (int(pagination) - 1)
+    end_element = 12 * (int(pagination) - 1) + 12
 
     if end_element > len(serialized_data):
         end_element = len(serialized_data) - 1
@@ -186,3 +184,61 @@ def delete(request):
             logging.error(exc)
             return Response({"error": "Failed to delete object from Storage."}, status=500)
 
+
+@csrf_protect
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def get_users_access(request):
+    data = request.data
+    object_name = data.get('object_name')
+
+    if not object_name:
+        return Response({'error': 'Object name is required'}, status=400)
+
+    db_obj = Object.objects.filter(name=object_name).first()
+
+    if not db_obj:
+        return Response({'error': 'Object not found'}, status=404)
+
+    users = CustomUser.objects.all()
+    users_with_access = db_obj.users_with_access.all()
+
+    response = []
+
+    for user in users:
+        if user.username != request.user.username:
+            response.append({
+                'user': user.username,
+                'has_access': 'true' if user in users_with_access else 'false'
+            })
+
+    return Response(response, status=200)
+
+
+@csrf_protect
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def change_users_access(request):
+    data = request.data
+    new_permissions = data.get('permissions', [])
+    object_name = data.get('object_name')
+
+    if not object_name:
+        return Response({'error': 'Object name is required'}, status=400)
+
+    db_obj = Object.objects.filter(name=object_name).first()
+
+    if not db_obj:
+        return Response({'error': 'Object not found'}, status=404)
+
+    for permission in new_permissions:
+        user = CustomUser.objects.filter(username=permission['user']).first()
+        if not user:
+            continue
+
+        if permission['allowed'] == 'true':
+            db_obj.users_with_access.add(user)
+        else:
+            db_obj.users_with_access.remove(user)
+
+    return Response({'detail': 'Permissions changed successfully.'}, status=200)
