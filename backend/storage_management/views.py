@@ -115,32 +115,29 @@ def create_presigned_post(s3_client, bucket_name, object_name, fields=None, cond
 def post_upload(request):
     data = request.data
     try:
-        file_path = data['file_path']
         object_name = data['object_name']
 
-        if not file_path or not object_name:
-            return Response({"error": "file_path and object_name are required."}, status=400)
+        if not object_name:
+            return Response({"error": "object_name is required."}, status=400)
 
-        extension = os.path.splitext(file_path)[1].lower().strip(".")
+        extension = object_name.split('.')[-1]
 
         existing_object = Object.objects.filter(name=object_name, owner=request.user).first()
         if existing_object:
             existing_object.delete()
 
-        with open(file_path, "rb") as file:
-            owner = request.user
-            size = file.tell()
-            new_object = Object(
-                name=object_name,
-                size=size,
-                owner=owner,
-                extension=extension
-            )
-            new_object.save()
-            new_object.users_with_access.add(owner)
-            new_object.save()
+        new_object = Object(
+            name=object_name,
+            size=data['size'],
+            owner=request.user,
+            extension=extension
+        )
 
-            return Response({'detail': 'Changes submitted to database.'}, status=200)
+        new_object.save()
+        new_object.users_with_access.add(request.user)
+        new_object.save()
+
+        return Response({'detail': 'Changes submitted to database.'}, status=200)
 
     except Exception as exc:
         logging.error(exc)
