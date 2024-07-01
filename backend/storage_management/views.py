@@ -134,7 +134,7 @@ def download(request):
                 ExpiresIn=3600
             )
 
-            return Response(response, status=200)
+            return Response({'download_link': response}, status=200)
 
         except Exception as exc:
             logging.error(exc)
