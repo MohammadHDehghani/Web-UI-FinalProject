@@ -71,6 +71,19 @@ def upload(request):
             aws_secret_access_key=secret_key
         )
 
+        cors_configuration = {
+            'CORSRules': [{
+                'AllowedHeaders': ['*'],
+                'AllowedMethods': ['POST'],
+                'AllowedOrigins': ['*']
+            }]
+        }
+
+        s3_client.put_bucket_cors(
+            Bucket=bucket_name,
+            CORSConfiguration=cors_configuration
+        )
+
         object_name = request.data['object_name']
         response = create_presigned_post(s3_client, bucket_name, object_name)
         if response:
