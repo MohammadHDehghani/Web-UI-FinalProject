@@ -1,3 +1,4 @@
+from botocore.exceptions import ClientError
 from django.contrib.auth import get_user_model
 from django.db.models import Q
 from django.views.decorators.csrf import csrf_protect
@@ -62,53 +63,37 @@ def user_objects(request):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def upload(request):
-    data = request.data
-
     try:
-        s3_resource = arvan_authenticator()
-        if s3_resource is None:
-            raise Exception()
-    except Exception as exc:
-        logging.error(exc)
-        return Response({"error": "Authentication to S3 failed."}, status=500)
-    else:
-        try:
-            bucket = s3_resource.Bucket(bucket_name)
-            file_path = data['file_path']
-            object_name = data['object_name']
+        s3_client = boto3.client(
+            's3',
+            endpoint_url=endpoint_url,
+            aws_access_key_id=access_key,
+            aws_secret_access_key=secret_key
+        )
 
-            if not file_path or not object_name:
-                return Response({"error": "file_path and object_name are required."})
+        object_name = request.data['object_name']
+        response = create_presigned_post(s3_client, bucket_name, object_name)
+        if response:
+            logging.info(f"response: {response}")
+            return Response(response, status=200)
+        else:
+            raise Exception
+    except Exception:
+        return Response({'detail': 'Failed to create presigned post to S3.'}, status=500)
 
-            extension = os.path.splitext(file_path)[1].lower().strip(".")
 
-            existing_object = Object.objects.filter(name=object_name, owner=request.user).first()
-            if existing_object:
-                existing_object.delete()
-
-            with open(file_path, "rb") as file:
-                bucket.put_object(
-                    ACL='private',
-                    Body=file,
-                    Key=object_name,
-                )
-                owner = request.user
-                size = file.tell()
-                new_object = Object(
-                    name=object_name,
-                    size=size,
-                    owner=owner,
-                    extension=extension
-                )
-                new_object.save()
-                new_object.users_with_access.add(owner)
-                new_object.save()
-
-                return Response({'detail': 'File uploaded successfully.'}, status=200)
-
-        except Exception as exc:
-            logging.error(exc)
-            return Response({"error": "Failed to upload object to S3."}, status=500)
+def create_presigned_post(s3_client, bucket_name, object_name, fields=None, conditions=None, expiration=3600):
+    try:
+        return s3_client.generate_presigned_post(
+            bucket_name,
+            object_name,
+            Fields=fields,
+            Conditions=conditions,
+            ExpiresIn=expiration
+        )
+    except ClientError as e:
+        logging.error(e)
+        return None
 
 
 @csrf_protect
