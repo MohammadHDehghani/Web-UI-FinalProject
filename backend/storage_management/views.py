@@ -10,7 +10,6 @@ from users.models import CustomUser
 
 import boto3
 import logging
-import os
 
 from rest_framework.response import Response
 
