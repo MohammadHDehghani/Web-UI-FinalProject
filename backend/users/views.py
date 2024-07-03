@@ -10,6 +10,8 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
+from django.shortcuts import redirect
+from django.urls import reverse
 
 from .forms import LoginForm
 from .models import CustomUser
@@ -66,13 +68,13 @@ def activate(request, uidb64, token):
     try:
         uid = force_str(urlsafe_base64_decode(uidb64))
         user = CustomUser.objects.get(pk=uid)
-    except(TypeError, ValueError, OverflowError):
+    except(TypeError, ValueError, OverflowError, CustomUser.DoesNotExist):
         user = None
 
     if user is not None and account_activation_token.check_token(user, token):
         user.is_active = True
         user.save()
-        return Response({'detail': 'Account activated successfully.'}, status=status.HTTP_200_OK)
+        return redirect('http://127.0.0.1:4200/login/')
     else:
         return Response({'detail': 'Activation link is invalid!'}, status=status.HTTP_400_BAD_REQUEST)
 
