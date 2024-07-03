@@ -74,7 +74,7 @@ def activate(request, uidb64, token):
     if user is not None and account_activation_token.check_token(user, token):
         user.is_active = True
         user.save()
-        return redirect(reverse('your-redirect-url-name'))
+        return redirect('http://127.0.0.1:4200/login/')
     else:
         return Response({'detail': 'Activation link is invalid!'}, status=status.HTTP_400_BAD_REQUEST)
 
