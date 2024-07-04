@@ -210,14 +210,12 @@ def delete(request):
             if db_obj is None:
                 return Response({"error": "Object not found."}, status=404)
 
-            if request.user != db_obj.owner and not db_obj.users_with_access.filter(id=request.user.id).exists():
+            if request.user != db_obj.owner:
                 return Response({"error": "You do not have permission to access this object."}, status=403)
 
             bucket_object = bucket.Object(object_name)
 
-            response = bucket_object.delete(
-                VersionId='string',
-            )
+            bucket_object.delete()
 
             db_obj.delete()
 
