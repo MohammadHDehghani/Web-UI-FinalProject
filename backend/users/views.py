@@ -74,7 +74,7 @@ def activate(request, uidb64, token):
     if user is not None and account_activation_token.check_token(user, token):
         user.is_active = True
         user.save()
-        return redirect('http://127.0.0.1:4200/login/')
+        return redirect('http://localhost:4200/login/')
     else:
         return Response({'detail': 'Activation link is invalid!'}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -99,7 +99,7 @@ def user_login(request):
                 'refresh': str(refresh),
                 'access': str(refresh.access_token),
                 'username': user.username,
-                'avatar': 'https://saatsheni.com/storage/4a4da2041c057327aa7287ae5e78c2b6/Card-thumbanil-copy.webp',
+                'avatar': 'https://www.gstatic.com/webp/gallery/4.webp',
                 'total_volume': calculate_total_volume(user.username),
             })
         else:
