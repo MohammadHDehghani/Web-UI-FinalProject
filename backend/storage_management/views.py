@@ -253,7 +253,7 @@ def get_users_access(request):
             response.append({
                 'user': user.username,
                 'email': user.email,
-                'avatar': 'https://saatsheni.com/storage/4a4da2041c057327aa7287ae5e78c2b6/Card-thumbanil-copy.webp',
+                'avatar': 'https://www.gstatic.com/webp/gallery/4.webp',
                 'has_access': 'true' if user in users_with_access else 'false'
             })
 
